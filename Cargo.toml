@@ -4,7 +4,7 @@ version = "0.3.0-rc1"
 edition = "2021"
 description = "BEIT cloud heuristic-sampler Ising miner (BEITUnconstrainedSampler, v0.3)"
 license = "AGPL-3.0-or-later"
-repository = "https://gitlab.com/quip.network/quip-miner-beit"
+repository = "https://gitlab.com/quip.network/ising-solver-beit"
 rust-version = "1.97"
 
 [lib]
