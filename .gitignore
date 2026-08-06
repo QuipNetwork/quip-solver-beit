@@ -1,0 +1,14 @@
+/target/
+.cargo/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.claude/
+.serena/
+.rustcheck/
+*.swp
+.DS_Store

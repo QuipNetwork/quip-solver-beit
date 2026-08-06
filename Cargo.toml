@@ -1,0 +1,64 @@
+[package]
+name = "quip-miner-beit"
+version = "0.3.0-rc1"
+edition = "2021"
+description = "BEIT cloud heuristic-sampler Ising miner (BEITUnconstrainedSampler, v0.3)"
+license = "AGPL-3.0-or-later"
+repository = "https://gitlab.com/quip.network/quip-miner-beit"
+rust-version = "1.97"
+
+[lib]
+name = "quip_miner_beit"
+path = "src/lib.rs"
+
+[[bin]]
+name = "quip-beit-sa"
+path = "src/bin/quip_beit_sa.rs"
+
+# Single-crate package, so lints live here rather than in [workspace.lints].
+[lints.rust]
+nonstandard-style     = "warn"
+redundant-lifetimes   = "warn"
+rust-2018-idioms      = "deny"
+unreachable-pub       = "warn"
+unsafe-code           = "deny"
+unused-extern-crates  = "warn"
+unused-imports        = "warn"
+unused-must-use       = "warn"
+unused-qualifications = "warn"
+
+[lints.clippy]
+panic                 = "deny"
+panic-in-result-fn    = "deny"
+unimplemented         = "deny"
+allow-attributes      = "deny"
+dbg-macro             = "warn"
+todo                  = "deny"
+print-stdout          = "deny"
+print-stderr          = "deny"
+redundant-clone       = "warn"
+uninlined-format-args = "warn"
+manual-string-new     = "warn"
+use-self              = "warn"
+await-holding-lock    = "deny"
+large-futures         = "deny"
+exit                  = "deny"
+mem-forget            = "deny"
+# unwrap-used is denied at the library/binary crate root (see lib.rs / bin),
+# not here: integration tests are a separate crate and use expect/panic freely.
+
+# Shared protocol crates live in the quip-protocol repo; tracked on its v0.3
+# branch until they are published to a registry (crates.io / GitLab).
+[dependencies]
+quip-proto = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
+quip-protocol = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
+quip-miner-core = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
+clap = { version = "4", features = ["derive", "env"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+quip-mock-coordinator = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "signal", "io-util", "sync", "process"] }
