@@ -795,7 +795,7 @@ dependencies = [
 [[package]]
 name = "quip-miner-core"
 version = "0.3.0"
-source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#3d232fe02af482d7a01b889ffe6f6761ca760333"
+source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#5c0ca9024bc9574b1f9b13b11f216e1de2c61c80"
 dependencies = [
  "clap",
  "getrandom 0.2.17",
@@ -808,12 +808,13 @@ dependencies = [
  "tonic",
  "tower 0.5.3",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
 name = "quip-mock-coordinator"
 version = "0.3.0"
-source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#3d232fe02af482d7a01b889ffe6f6761ca760333"
+source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#5c0ca9024bc9574b1f9b13b11f216e1de2c61c80"
 dependencies = [
  "hyper-util",
  "prost",
@@ -828,7 +829,7 @@ dependencies = [
 [[package]]
 name = "quip-proto"
 version = "0.3.0"
-source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#3d232fe02af482d7a01b889ffe6f6761ca760333"
+source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#5c0ca9024bc9574b1f9b13b11f216e1de2c61c80"
 dependencies = [
  "prost",
  "tonic",
@@ -838,7 +839,7 @@ dependencies = [
 [[package]]
 name = "quip-protocol"
 version = "0.3.0"
-source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#3d232fe02af482d7a01b889ffe6f6761ca760333"
+source = "git+https://gitlab.com/quip.network/quip-protocol.git?branch=v0.3#5c0ca9024bc9574b1f9b13b11f216e1de2c61c80"
 dependencies = [
  "blake3",
  "prost",
