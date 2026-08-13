@@ -1,6 +1,6 @@
 [package]
 name = "quip-miner-beit"
-version = "0.3.0-rc1"
+version = "0.3.0-rc2"
 edition = "2021"
 description = "BEIT cloud heuristic-sampler Ising miner (BEITUnconstrainedSampler, v0.3)"
 license = "AGPL-3.0-or-later"

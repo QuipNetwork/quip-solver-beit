@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "quip-miner-beit"
-version = "0.3.0-rc1"
+version = "0.3.0-rc2"
 dependencies = [
  "clap",
  "quip-miner-core",
