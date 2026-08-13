@@ -32,15 +32,11 @@ struct Cli {
 }
 
 fn main() -> ExitCode {
-    // Logging to stderr only (print-stdout is denied in the library; the
-    // harness owns capabilities JSON on stdout).
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
-    let _ = tracing_subscriber::fmt()
-        .with_writer(std::io::stderr)
-        .with_env_filter(filter)
-        .try_init();
-
+    // quip-miner-core installs the log subscriber inside run(). It writes to
+    // stderr only (print-stdout is denied in the library; the harness owns the
+    // capabilities JSON on stdout) and it honours --log-level. Do not install a
+    // subscriber here: both use try_init, so a local one wins the race and
+    // silently discards the level the coordinator passes to every miner child.
     let cli = Cli::parse();
     let config = BeitConfig {
         max_billed_jobs: cli.max_billed_jobs.max(1),
