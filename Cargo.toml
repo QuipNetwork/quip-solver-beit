@@ -1,6 +1,6 @@
 [package]
 name = "quip-miner-beit"
-version = "0.3.0-rc1"
+version = "0.3.0-rc2"
 edition = "2021"
 description = "BEIT cloud heuristic-sampler Ising miner (BEITUnconstrainedSampler, v0.3)"
 license = "AGPL-3.0-or-later"
@@ -57,7 +57,6 @@ clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 quip-mock-coordinator = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
