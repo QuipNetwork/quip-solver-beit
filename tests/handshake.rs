@@ -1,4 +1,4 @@
-//! Process-spawn exit-code parity with quip-mock-miner / quip-miner-cpu.
+//! Process-spawn exit-code parity with quip-mock-miner / quip-solver-cpu.
 
 use std::process::Command;
 
