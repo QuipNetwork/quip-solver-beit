@@ -3,15 +3,15 @@
 //! All tests run offline (no `BEIT_CUSTOMER_KEY`, no network) via mock/replay
 //! transports — same spirit as `ISINGMARK_ALLOW_MISSING_MINERS`.
 
-use quip_miner_beit::limits::{
+use quip_solver_beit::limits::{
     binary_to_spins, count_ising_nonzeros, ising_to_qubo, milli_to_beit, validate_job,
     LimitViolation, MAX_NONZERO_COEFFS, MAX_VAR_SAMPLE_PRODUCT,
 };
-use quip_miner_beit::transport::{
+use quip_solver_beit::transport::{
     decode_response, encode_request, DeadTransport, MockTransport, ReplayTransport, SampleResponse,
     SidecarRequest, SidecarSample,
 };
-use quip_miner_beit::{BeitConfig, BeitSampler};
+use quip_solver_beit::{BeitConfig, BeitSampler};
 use quip_solver_core::quip_protocol::scoring::energy_milli;
 use quip_solver_core::SampleError;
 use quip_solver_core::{IsingGraph, SampleParams, Sampler};

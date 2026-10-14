@@ -8,7 +8,7 @@
 #![warn(clippy::expect_used)]
 
 use clap::Parser;
-use quip_miner_beit::{BeitConfig, BeitSampler, BEIT_SA_IDENTITY, DEFAULT_MAX_BILLED_JOBS};
+use quip_solver_beit::{BeitConfig, BeitSampler, BEIT_SA_IDENTITY, DEFAULT_MAX_BILLED_JOBS};
 use quip_solver_core::{run, CommonArgs};
 use std::process::ExitCode;
 

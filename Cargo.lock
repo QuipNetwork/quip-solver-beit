@@ -704,17 +704,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quip-miner-beit"
-version = "0.3.0-rc2"
-dependencies = [
- "clap",
- "quip-solver-core",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
 name = "quip-proto"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -732,6 +721,17 @@ checksum = "02fd183f280108004811f34cb2520e448bf104fad8a1cd3d985ad474c96cdf43"
 dependencies = [
  "blake3",
  "quip-proto",
+]
+
+[[package]]
+name = "quip-solver-beit"
+version = "0.3.0-rc2"
+dependencies = [
+ "clap",
+ "quip-solver-core",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]

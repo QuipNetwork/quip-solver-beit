@@ -1,4 +1,4 @@
-# quip-miner-beit
+# quip-solver-beit
 
 BEIT cloud heuristic Ising miner for quip.network protocol version 2.
 
