@@ -9,11 +9,11 @@
 
 use clap::Parser;
 use quip_miner_beit::{BeitConfig, BeitSampler, BEIT_SA_IDENTITY, DEFAULT_MAX_BILLED_JOBS};
-use quip_miner_core::{run, CommonArgs};
+use quip_solver_core::{run, CommonArgs};
 use std::process::ExitCode;
 
 #[derive(Parser, Debug)]
-#[command(version = concat!(env!("CARGO_PKG_VERSION"), " protocol 1"))]
+#[command(version = concat!(env!("CARGO_PKG_VERSION"), " protocol 2"))]
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
@@ -32,7 +32,7 @@ struct Cli {
 }
 
 fn main() -> ExitCode {
-    // quip-miner-core installs the log subscriber inside run(). It writes to
+    // quip-solver-core installs the log subscriber inside run(). It writes to
     // stderr only (print-stdout is denied in the library; the harness owns the
     // capabilities JSON on stdout) and it honours --log-level. Do not install a
     // subscriber here: both use try_init, so a local one wins the race and
@@ -44,6 +44,6 @@ fn main() -> ExitCode {
     };
 
     run(BEIT_SA_IDENTITY, &cli.common, move || {
-        BeitSampler::open_live(config).map_err(quip_miner_core::OpenError)
+        BeitSampler::open_live(config).map_err(quip_solver_core::OpenError)
     })
 }

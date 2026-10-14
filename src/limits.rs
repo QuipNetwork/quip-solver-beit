@@ -6,8 +6,8 @@
 //! - at most 5000 non-zero coefficients
 //! - `variables * samples <= 1e6`
 
-use quip_miner_core::IsingGraph;
-use quip_proto::v1::RejectReason;
+use quip_solver_core::IsingGraph;
+use quip_solver_core::SampleError;
 use std::collections::BTreeMap;
 use std::fmt;
 
@@ -96,14 +96,18 @@ pub enum LimitViolation {
 }
 
 impl LimitViolation {
-    /// Protocol reject reason for this violation.
+    /// Device condition the session reports for this violation.
+    ///
+    /// A job over a BEIT limit fails again on any retry, so it is `Capacity`.
+    /// The billed-job cap holds for the rest of the process, so it is a
+    /// `DeviceFault`: the session ends instead of accepting jobs it would refuse.
     #[must_use]
-    pub const fn reject_reason(&self) -> RejectReason {
+    pub fn sample_error(&self) -> SampleError {
         match self {
-            Self::BilledJobCap { .. } => RejectReason::Overloaded,
+            Self::BilledJobCap { .. } => SampleError::DeviceFault(self.to_string()),
             Self::TooManyNonzeros { .. }
             | Self::CoeffMagnitude { .. }
-            | Self::VarSampleProduct { .. } => RejectReason::TooLarge,
+            | Self::VarSampleProduct { .. } => SampleError::Capacity,
         }
     }
 }
@@ -271,7 +275,7 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::panic, clippy::expect_used)]
 
     use super::*;
-    use quip_miner_core::IsingGraph;
+    use quip_solver_core::IsingGraph;
 
     #[test]
     fn milli_to_beit_divides_by_1000() {
@@ -319,7 +323,7 @@ mod tests {
             }
             other => panic!("expected TooManyNonzeros, got {other}"),
         }
-        assert_eq!(err.reject_reason(), RejectReason::TooLarge);
+        assert_eq!(err.sample_error(), SampleError::Capacity);
         let msg = err.to_string();
         assert!(msg.contains("5000"), "{msg}");
         assert!(msg.contains("5001"), "{msg}");
