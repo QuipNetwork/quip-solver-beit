@@ -185,11 +185,15 @@ impl Sampler for BeitSampler {
         let mut results = Vec::with_capacity(response.samples.len());
         for s in &response.samples {
             if s.bits.len() != graph.num_nodes() {
-                return Err(SampleError::DeviceFault(format!(
+                // The call is already billed. DeviceBusy keeps the process, and
+                // with it the billed-job cap, alive; a DeviceFault would let the
+                // supervisor respawn the solver with a fresh cap.
+                tracing::error!(
                     "BEIT returned {} spins for a {}-node job",
                     s.bits.len(),
                     graph.num_nodes()
-                )));
+                );
+                return Err(SampleError::DeviceBusy);
             }
             let spins = binary_to_spins(&s.bits);
             // Never trust BEIT's energy field — recompute locally.
@@ -310,24 +314,26 @@ mod tests {
         let g = ferro();
         sampler.sample(&g, &params(1)).expect("first job");
         let err = sampler.sample(&g, &params(1)).unwrap_err();
-        let SampleError::DeviceFault(detail) = err else {
-            panic!("expected a device fault, got {err:?}");
-        };
-        assert!(detail.contains("billed-job cap reached (1/1)"), "{detail}");
+        // Busy, not a fault: a fault exits 70, which the supervisor respawns
+        // with a fresh cap.
+        assert_eq!(err, SampleError::DeviceBusy);
         assert_eq!(sampler.billed_count(), 1, "the refused job is not billed");
+        // The cap holds for the rest of the process.
+        let err = sampler.sample(&g, &params(1)).unwrap_err();
+        assert_eq!(err, SampleError::DeviceBusy);
+        assert_eq!(sampler.billed_count(), 1);
     }
 
     #[test]
-    fn wrong_sample_length_is_a_device_fault() {
+    fn wrong_sample_length_is_busy_and_billed() {
         let transport = MockTransport {
             samples: vec![vec![0, 1, 1]],
         };
         let sampler = BeitSampler::new(Arc::new(transport), BeitConfig::default());
         let err = sampler.sample(&ferro(), &params(1)).unwrap_err();
-        let SampleError::DeviceFault(detail) = err else {
-            panic!("expected a device fault, got {err:?}");
-        };
-        assert_eq!(detail, "BEIT returned 3 spins for a 2-node job");
+        assert_eq!(err, SampleError::DeviceBusy);
+        // The call reached BEIT, so it counts against the cap.
+        assert_eq!(sampler.billed_count(), 1);
     }
 
     #[test]

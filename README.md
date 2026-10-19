@@ -19,8 +19,9 @@ order of 30¢ per 100 seconds of sampler time; see BEIT docs).
 |---------|---------|--------------|
 | Billed jobs per process | **10** | `--max-billed-jobs N` or `BEIT_MAX_BILLED_JOBS=N` |
 
-When the cap is hit, the next job ends the session with a device fault that names the cap,
-so the coordinator stops sending jobs this process would refuse.
+When the cap is hit, further jobs are rejected with `Overloaded` and a log line that names
+the cap. The process keeps running, so the cap holds until it exits. The cap counts per
+process: a supervisor that restarts the solver starts a fresh one.
 A throughput benchmark that leaves the default in place will stop after 10 paid calls —
 raise the cap **explicitly** before measuring, and budget for the cost.
 

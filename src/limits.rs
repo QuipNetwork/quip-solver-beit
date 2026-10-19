@@ -99,12 +99,14 @@ impl LimitViolation {
     /// Device condition the session reports for this violation.
     ///
     /// A job over a BEIT limit fails again on any retry, so it is `Capacity`.
-    /// The billed-job cap holds for the rest of the process, so it is a
-    /// `DeviceFault`: the session ends instead of accepting jobs it would refuse.
+    /// The billed-job cap is `DeviceBusy`, which rejects the job and keeps the
+    /// process alive. A `DeviceFault` would exit 70, the supervisor would
+    /// respawn the solver, and each new process would start a fresh cap, so
+    /// the cap would no longer bound the spend.
     #[must_use]
     pub fn sample_error(&self) -> SampleError {
         match self {
-            Self::BilledJobCap { .. } => SampleError::DeviceFault(self.to_string()),
+            Self::BilledJobCap { .. } => SampleError::DeviceBusy,
             Self::TooManyNonzeros { .. }
             | Self::CoeffMagnitude { .. }
             | Self::VarSampleProduct { .. } => SampleError::Capacity,
