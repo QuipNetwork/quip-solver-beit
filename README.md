@@ -1,12 +1,13 @@
-# quip-miner-beit
+# quip-solver-beit
 
-BEIT cloud heuristic Ising miner for the quip.network v0.3 mining protocol.
+BEIT cloud heuristic Ising miner for quip.network protocol version 2.
 
 Binary: **`quip-beit-sa`**. Backend: BEIT `BEITUnconstrainedSampler` (quantum-inspired
 simulated annealing over arbitrary topology). The exact Chimera-only `BEITSolver` is
 **not** wrapped.
 
-Energies are scored with the canonical `quip_protocol::scoring::energy_milli` from
+Energies are scored with the canonical `quip_protocol::scoring::energy_milli` (re-exported by
+`quip-solver-core`) from
 decoded spins. BEIT's own objective value is never forwarded as the protocol energy.
 
 ## Cost guard (read this first)
@@ -18,7 +19,9 @@ order of 30¢ per 100 seconds of sampler time; see BEIT docs).
 |---------|---------|--------------|
 | Billed jobs per process | **10** | `--max-billed-jobs N` or `BEIT_MAX_BILLED_JOBS=N` |
 
-When the cap is hit, further jobs are rejected with `Overloaded` and a clear log line.
+When the cap is hit, further jobs are rejected with `Overloaded` and a log line that names
+the cap. The process keeps running, so the cap holds until it exits. The cap counts per
+process: a supervisor that restarts the solver starts a fresh one.
 A throughput benchmark that leaves the default in place will stop after 10 paid calls —
 raise the cap **explicitly** before measuring, and budget for the cost.
 
@@ -43,8 +46,7 @@ raise the cap **explicitly** before measuring, and budget for the cost.
 cargo build --release
 ```
 
-Shared protocol crates (`quip-proto`, `quip-protocol`, `quip-miner-core`) are git
-dependencies on branch `v0.3` of `quip-protocol`.
+The session loop and wire types come from the `quip-solver-core` crate on crates.io.
 
 ## Running
 

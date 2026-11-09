@@ -469,7 +469,7 @@ mod tests {
 
     use super::*;
     use crate::limits::{ising_to_qubo, PreparedQubo, QuboTerm};
-    use quip_miner_core::IsingGraph;
+    use quip_solver_core::IsingGraph;
 
     #[test]
     fn encode_decode_ping_roundtrip() {

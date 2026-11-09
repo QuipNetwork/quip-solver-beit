@@ -1,14 +1,14 @@
 [package]
-name = "quip-miner-beit"
+name = "quip-solver-beit"
 version = "0.3.0-rc2"
 edition = "2021"
-description = "BEIT cloud heuristic-sampler Ising miner (BEITUnconstrainedSampler, v0.3)"
+description = "BEIT cloud heuristic-sampler Ising solver (BEITUnconstrainedSampler)"
 license = "AGPL-3.0-or-later"
-repository = "https://gitlab.com/quip.network/ising-solver-beit"
+repository = "https://gitlab.com/quip.network/quip-solver-beit"
 rust-version = "1.97"
 
 [lib]
-name = "quip_miner_beit"
+name = "quip_solver_beit"
 path = "src/lib.rs"
 
 [[bin]]
@@ -47,17 +47,12 @@ mem-forget            = "deny"
 # unwrap-used is denied at the library/binary crate root (see lib.rs / bin),
 # not here: integration tests are a separate crate and use expect/panic freely.
 
-# Shared protocol crates live in the quip-protocol repo; tracked on its v0.3
-# branch until they are published to a registry (crates.io / GitLab).
+# The Quip solver contract, published from crates.io (quip.network/quip-solver-core).
+# It re-exports quip-proto and quip-protocol, so depending on those directly
+# would only pin a second copy of the same code.
 [dependencies]
-quip-proto = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
-quip-protocol = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
-quip-miner-core = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
+quip-solver-core = "0.0.3"
 clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing = "0.1"
-
-[dev-dependencies]
-quip-mock-coordinator = { git = "https://gitlab.com/quip.network/quip-protocol.git", branch = "v0.3" }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "signal", "io-util", "sync", "process"] }

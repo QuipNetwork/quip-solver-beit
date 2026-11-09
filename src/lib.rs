@@ -2,11 +2,11 @@
 //!
 //! Binary `quip-beit-sa` talks to the AWS Marketplace BEIT SaaS through a
 //! long-lived Python sidecar. The coordinator session loop lives in
-//! `quip-miner-core`; this crate provides the [`BeitSampler`] backend.
+//! `quip-solver-core`; this crate provides the [`BeitSampler`] backend.
 //!
 //! Energies are always recomputed with
-//! [`quip_protocol::scoring::energy_milli`] from decoded spins — BEIT's own
-//! objective is never forwarded as the protocol energy.
+//! [`quip_solver_core::quip_protocol::scoring::energy_milli`] from decoded
+//! spins — BEIT's own objective is never forwarded as the protocol energy.
 
 // Panic discipline for the library only. Integration tests (`tests/`) are a
 // separate crate. Unit tests under `cfg(test)` need expect/panic for asserts.
@@ -24,16 +24,16 @@ pub use limits::{
     LimitViolation, PreparedQubo, QuboTerm, DEFAULT_MAX_BILLED_JOBS, MAX_COEFF_MAGNITUDE,
     MAX_NONZERO_COEFFS, MAX_TIMEOUT_SECS, MAX_VAR_SAMPLE_PRODUCT,
 };
-pub use quip_miner_core::{IsingGraph, SampleParams, SamplerResult};
+pub use quip_solver_core::{IsingGraph, SampleParams, SamplerResult};
 pub use transport::{
     BeitTransport, DeadTransport, MockTransport, PythonSidecar, ReplayTransport, SampleResponse,
     SidecarRequest, SidecarResponse, SidecarSample, CUSTOMER_KEY_ENV,
 };
 
-use quip_miner_core::adapt::AdaptBounds;
-use quip_miner_core::{BackendIdentity, Sampler};
-use quip_proto::v1::RejectReason;
-use quip_protocol::scoring::energy_milli;
+use quip_solver_core::adapt::AdaptBounds;
+use quip_solver_core::quip_proto::v1::{Algorithm, Backend};
+use quip_solver_core::quip_protocol::scoring::energy_milli;
+use quip_solver_core::{BackendIdentity, ModelLimits, SampleError, Sampler};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use transport::TransportError;
@@ -58,12 +58,17 @@ const BEIT_ADAPT: AdaptBounds = AdaptBounds {
 };
 
 /// Backend identity for `quip-beit-sa`.
+///
+/// The wire has no BEIT backend value. `Exec` names a solver that hands the
+/// job to an external service, and BEIT's sampler is simulated annealing.
 pub const BEIT_SA_IDENTITY: BackendIdentity = BackendIdentity {
-    backend: "beit",
-    algorithm: "sa",
+    backend: Backend::Exec,
+    algorithm: Algorithm::Sa,
     max_nodes: DEFAULT_MAX_NODES,
     max_edges: DEFAULT_MAX_EDGES,
+    features: &[],
     adapt: BEIT_ADAPT,
+    limits: ModelLimits::UNSTATED,
 };
 
 /// Default timeout (seconds) when the job does not carry `anneal_time_us`.
@@ -131,11 +136,11 @@ impl BeitSampler {
         t.clamp(1, MAX_TIMEOUT_SECS)
     }
 
-    fn map_transport_err(err: TransportError) -> RejectReason {
+    fn map_transport_err(err: TransportError) -> SampleError {
         tracing::error!("BEIT transport error: {}", err.0);
-        // Sidecar death / protocol failure: treat as temporary overload so the
+        // Sidecar death / protocol failure: treat as transient load so the
         // coordinator can reassign, not as a permanent size reject.
-        RejectReason::Overloaded
+        SampleError::DeviceBusy
     }
 
     fn check_cap(&self) -> Result<(), LimitViolation> {
@@ -155,17 +160,17 @@ impl Sampler for BeitSampler {
         &self,
         graph: &IsingGraph,
         params: &SampleParams,
-    ) -> Result<Vec<SamplerResult>, RejectReason> {
+    ) -> Result<Vec<SamplerResult>, SampleError> {
         let sample_count = params.num_reads.max(1);
         let qubo = ising_to_qubo(graph);
 
         if let Err(v) = validate_job(graph, sample_count, &qubo) {
             tracing::warn!("BEIT reject: {v}");
-            return Err(v.reject_reason());
+            return Err(v.sample_error());
         }
         if let Err(v) = self.check_cap() {
             tracing::warn!("BEIT reject: {v}");
-            return Err(v.reject_reason());
+            return Err(v.sample_error());
         }
 
         let timeout = self.timeout_secs(params);
@@ -180,12 +185,15 @@ impl Sampler for BeitSampler {
         let mut results = Vec::with_capacity(response.samples.len());
         for s in &response.samples {
             if s.bits.len() != graph.num_nodes() {
+                // The call is already billed. DeviceBusy keeps the process, and
+                // with it the billed-job cap, alive; a DeviceFault would let the
+                // supervisor respawn the solver with a fresh cap.
                 tracing::error!(
-                    "BEIT sample length {} != num_nodes {}",
+                    "BEIT returned {} spins for a {}-node job",
                     s.bits.len(),
                     graph.num_nodes()
                 );
-                return Err(RejectReason::Malformed);
+                return Err(SampleError::DeviceBusy);
             }
             let spins = binary_to_spins(&s.bits);
             // Never trust BEIT's energy field — recompute locally.
@@ -209,7 +217,7 @@ impl Sampler for BeitSampler {
 
         if results.is_empty() {
             tracing::error!("BEIT returned zero samples");
-            return Err(RejectReason::Overloaded);
+            return Err(SampleError::DeviceBusy);
         }
         Ok(results)
     }
@@ -226,7 +234,7 @@ mod tests {
     use super::*;
     use crate::limits::binary_to_spins;
     use crate::transport::{MockTransport, ReplayTransport, SidecarSample};
-    use quip_protocol::scoring::energy_milli;
+    use quip_solver_core::quip_protocol::scoring::energy_milli;
 
     fn ferro() -> IsingGraph {
         IsingGraph::new(vec![0.0, 0.0], vec![-1.0], vec![(0, 1)])
@@ -267,7 +275,7 @@ mod tests {
         };
         let sampler = BeitSampler::new(Arc::new(transport), BeitConfig::default());
         let err = sampler.sample(&g, &params(1)).unwrap_err();
-        assert_eq!(err, RejectReason::TooLarge);
+        assert_eq!(err, SampleError::Capacity);
         assert_eq!(sampler.billed_count(), 0, "must not bill rejected jobs");
     }
 
@@ -279,7 +287,7 @@ mod tests {
         };
         let sampler = BeitSampler::new(Arc::new(transport), BeitConfig::default());
         let err = sampler.sample(&g, &params(1)).unwrap_err();
-        assert_eq!(err, RejectReason::TooLarge);
+        assert_eq!(err, SampleError::Capacity);
     }
 
     #[test]
@@ -290,7 +298,7 @@ mod tests {
         };
         let sampler = BeitSampler::new(Arc::new(transport), BeitConfig::default());
         let err = sampler.sample(&g, &params(1000)).unwrap_err();
-        assert_eq!(err, RejectReason::TooLarge);
+        assert_eq!(err, SampleError::Capacity);
     }
 
     #[test]
@@ -306,7 +314,26 @@ mod tests {
         let g = ferro();
         sampler.sample(&g, &params(1)).expect("first job");
         let err = sampler.sample(&g, &params(1)).unwrap_err();
-        assert_eq!(err, RejectReason::Overloaded);
+        // Busy, not a fault: a fault exits 70, which the supervisor respawns
+        // with a fresh cap.
+        assert_eq!(err, SampleError::DeviceBusy);
+        assert_eq!(sampler.billed_count(), 1, "the refused job is not billed");
+        // The cap holds for the rest of the process.
+        let err = sampler.sample(&g, &params(1)).unwrap_err();
+        assert_eq!(err, SampleError::DeviceBusy);
+        assert_eq!(sampler.billed_count(), 1);
+    }
+
+    #[test]
+    fn wrong_sample_length_is_busy_and_billed() {
+        let transport = MockTransport {
+            samples: vec![vec![0, 1, 1]],
+        };
+        let sampler = BeitSampler::new(Arc::new(transport), BeitConfig::default());
+        let err = sampler.sample(&ferro(), &params(1)).unwrap_err();
+        assert_eq!(err, SampleError::DeviceBusy);
+        // The call reached BEIT, so it counts against the cap.
+        assert_eq!(sampler.billed_count(), 1);
     }
 
     #[test]
@@ -317,7 +344,7 @@ mod tests {
         let t0 = std::time::Instant::now();
         let err = sampler.sample(&g, &params(1)).unwrap_err();
         assert!(t0.elapsed() < std::time::Duration::from_secs(2));
-        assert_eq!(err, RejectReason::Overloaded);
+        assert_eq!(err, SampleError::DeviceBusy);
     }
 
     #[test]

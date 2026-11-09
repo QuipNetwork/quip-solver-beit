@@ -3,18 +3,18 @@
 //! All tests run offline (no `BEIT_CUSTOMER_KEY`, no network) via mock/replay
 //! transports — same spirit as `ISINGMARK_ALLOW_MISSING_MINERS`.
 
-use quip_miner_beit::limits::{
+use quip_solver_beit::limits::{
     binary_to_spins, count_ising_nonzeros, ising_to_qubo, milli_to_beit, validate_job,
     LimitViolation, MAX_NONZERO_COEFFS, MAX_VAR_SAMPLE_PRODUCT,
 };
-use quip_miner_beit::transport::{
+use quip_solver_beit::transport::{
     decode_response, encode_request, DeadTransport, MockTransport, ReplayTransport, SampleResponse,
     SidecarRequest, SidecarSample,
 };
-use quip_miner_beit::{BeitConfig, BeitSampler};
-use quip_miner_core::{IsingGraph, SampleParams, Sampler};
-use quip_proto::v1::RejectReason;
-use quip_protocol::scoring::energy_milli;
+use quip_solver_beit::{BeitConfig, BeitSampler};
+use quip_solver_core::quip_protocol::scoring::energy_milli;
+use quip_solver_core::SampleError;
+use quip_solver_core::{IsingGraph, SampleParams, Sampler};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -47,7 +47,7 @@ fn reject_over_5000_nonzeros_names_limit() {
     let msg = err.to_string();
     assert!(msg.contains("5000"), "{msg}");
     assert!(msg.contains(&(MAX_NONZERO_COEFFS + 1).to_string()), "{msg}");
-    assert_eq!(err.reject_reason(), RejectReason::TooLarge);
+    assert_eq!(err.sample_error(), SampleError::Capacity);
 
     let sampler = BeitSampler::new(
         Arc::new(MockTransport {
@@ -57,7 +57,7 @@ fn reject_over_5000_nonzeros_names_limit() {
     );
     assert_eq!(
         sampler.sample(&g, &params(1)).unwrap_err(),
-        RejectReason::TooLarge
+        SampleError::Capacity
     );
     assert_eq!(sampler.billed_count(), 0);
 }
@@ -83,7 +83,7 @@ fn reject_over_magnitude_coefficient() {
     );
     assert_eq!(
         sampler.sample(&g, &params(1)).unwrap_err(),
-        RejectReason::TooLarge
+        SampleError::Capacity
     );
 }
 
@@ -164,7 +164,7 @@ fn sidecar_death_mid_job_errors_quickly() {
         t0.elapsed() < Duration::from_secs(2),
         "sidecar death must not hang"
     );
-    assert_eq!(err, RejectReason::Overloaded);
+    assert_eq!(err, SampleError::DeviceBusy);
 }
 
 #[test]
